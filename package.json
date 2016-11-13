@@ -1,0 +1,19 @@
+{
+  "name": "openarena-stats",
+  "version": "1.0.0",
+  "description": "Openarena stats based on log files.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kociolekt/openarena-stats.git"
+  },
+  "author": "kociolekt <kociolek.t@gmail.com> (https://github.com/kociolekt)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kociolekt/openarena-stats/issues"
+  },
+  "homepage": "https://github.com/kociolekt/openarena-stats#readme"
+}
