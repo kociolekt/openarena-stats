@@ -77,6 +77,7 @@ class OpenArenaStats {
       raw: rawGame
     };
 
+    this.processMeta(game);
     this.processPlayers(game);
     this.processAwards(game);
     this.processCTF(game);
@@ -84,6 +85,29 @@ class OpenArenaStats {
 
     results.push(game);
   }
+
+  processMeta(game) {
+    let metaRe = /^\s{1,2}\d{1,2}:\d{1,2}\s{1}InitGame:\s(.*)$/gm;
+
+    game.raw.match(metaRe).map( metaRaw => {
+      metaRe.lastIndex = 0;
+
+      let metaExec = metaRe.exec(metaRaw),
+        metaDataRaw = metaExec[1],
+        metaData = metaDataRaw.split('\\');
+
+      game.meta = {};
+
+      for (var i = 1, mLen = metaData.length; i < mLen; i += 2) {
+        game.meta[metaData[i]] = metaData[i+1];
+      }
+
+      // get start date and timestamp
+      game.date = new Date(game.meta.g_timestamp);
+      game.timestamp = game.date.getTime();
+    });
+  }
+
 
   processPlayers(game) {
     let playerRe = /^\s{1,2}\d{1,2}:\d{1,2}\s{1}ClientUserinfoChanged:\s{1}(\d+)\s{1}n\\(.*)\\t\\.*\\id\\(.*)$/gm;
@@ -159,8 +183,10 @@ class OpenArenaStats {
       }
 
     });
+  }
 
-    console.log(game.players);
+  getStats() {
+
   }
 
   static isWarmup(rawGame) {
