@@ -1,15 +1,25 @@
-let OpenArenaStats = require('./index.js'),
-  logFilePAth = './insta.log',
-  fs = require('fs');
-  
-fs.readFile(logFilePAth, 'utf8', function (err,data) {
-  if (err) {
-    return console.log(err);
-  }
+let OpenArenaParser = require('./openArenaParser.js'),
+  logDirPath = './logs',
+  fs = require('fs'),
+  glob = require("glob"),
+  logRe = new RegExp('^.*\.log$', 'g'),
+  logFiles = [],
+  openArenaParser = new OpenArenaParser();
 
-  let openArenaStats = new OpenArenaStats();
+function readFile(filePath) {
+  return new Promise((resolve, reject) => {
+    fs.readFile(filePath, 'utf8', (err, data) => {
+      if (err) {
+        return reject(err);
+      }
+      resolve(data);
+    });
+  });
+}
 
-  openArenaStats.addString(data);
-
-  //console.log(openArenaStats);
+glob('logs/*.log', undefined, (err, files) => {
+  Promise.all(files.map(file => readFile(file))).then(contents => {
+    contents.forEach(openArenaParser.addString.bind(openArenaParser));
+    console.log(openArenaParser);
+  });
 });

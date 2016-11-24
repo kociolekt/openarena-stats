@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/kociolekt/openarena-stats/issues"
   },
-  "homepage": "https://github.com/kociolekt/openarena-stats#readme"
+  "homepage": "https://github.com/kociolekt/openarena-stats#readme",
+  "dependencies": {
+    "glob": "^7.1.1"
+  }
 }
