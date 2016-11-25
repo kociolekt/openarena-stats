@@ -1,8 +1,17 @@
 'use strict';
 
+let capitalizeFirstLetter = require('./capitalizeFirstLetter');
+
 let dictionary = require('./openArenaDictionary'),
   defaults = Object.assign({
-    playerKey: 'name'
+    playerKey: 'name',
+    gameSplitter: /^(?:.*)ShutdownGame:/gm,
+    parsers: {
+      meta: /^(?:.*)InitGame:\s(.*)$/gm,
+      player: /^(?:.*)ClientUserinfoChanged:\s{1}(\d+)\s{1}n\\(.*)\\t\\.*\\id\\(.*)$/gm,
+      award: /^(?:.*)Award:\s(\d+)\s(\d+).*$/gm,
+      kill: /^(?:.*)Kill:\s(\d+)\s(\d+)\s(\d+).*$/gm
+    }
   }, dictionary);
 
 class OpenArenaParser {
@@ -15,7 +24,7 @@ class OpenArenaParser {
   }
 
   addString(logs) {
-    let rawGames = logs.split(/^\s+\d+:\d+\s+ShutdownGame:\s+\d+:\d+\s+-{60}$/gm);
+    let rawGames = logs.split(this.settings.gameSplitter);
 
     rawGames.pop(); // remove last empty bit
 
@@ -25,131 +34,125 @@ class OpenArenaParser {
   }
 
   addRawGame(rawGame) {
-    if(OpenArenaParser.isWarmup(rawGame)) {
-      this.processGame(rawGame, this.warmups);
-    } else {
-      this.processGame(rawGame, this.matches);
-    }
-  }
-
-  processGame(rawGame, results) {
     let game = {
-      raw: rawGame
+      raw: rawGame,
+      meta: {},
+      date: null,
+      timestamp: null,
+      players: {},
+      isWarmup: false
     };
 
-    this.processMeta(game);
-    this.processPlayers(game);
-    this.processAwards(game);
-    this.processCTF(game);
-    this.processKills(game);
-    this.clean(game);
+    if(OpenArenaParser.isWarmup(rawGame)) {
+      game.isWarmup = true;
+      this.warmups.push(game);
+    } else {
+      this.matches.push(game);
+    }
 
-    results.push(game);
+    this.processGame(game);
   }
 
-  processMeta(game) {
-    let metaRe = /^\s{1,2}\d{1,2}:\d{1,2}\s{1}InitGame:\s(.*)$/gm;
+  processGame(game) {
+    let parsers = this.settings.parsers,
+      parserKeys = Object.keys(parsers);
 
-    game.raw.match(metaRe).map( metaRaw => {
-      metaRe.lastIndex = 0;
+    for(let parserKey of parserKeys) {
+      let parserName = capitalizeFirstLetter(parserKey);
 
-      let metaExec = metaRe.exec(metaRaw),
-        metaDataRaw = metaExec[1],
-        metaData = metaDataRaw.split('\\');
+      this.matchAndExec(this.settings.parsers[parserKey], game.raw, this['process' + parserName].bind(this, game));
+    }
 
-      game.meta = {};
-
-      for (let i = 1, mLen = metaData.length; i < mLen; i += 2) {
-        game.meta[metaData[i]] = metaData[i+1];
-      }
-
-      // get start date and timestamp
-      game.date = new Date(game.meta.g_timestamp);
-      game.timestamp = game.date.getTime();
-    });
+    delete game.rawGame;
   }
 
+  processMeta(game, data) {
+    let metaData = data[1].split('\\');
 
-  processPlayers(game) {
-    let playerRe = /^\s{1,2}\d{1,2}:\d{1,2}\s{1}ClientUserinfoChanged:\s{1}(\d+)\s{1}n\\(.*)\\t\\.*\\id\\(.*)$/gm;
+    for (let i = 1, mLen = metaData.length; i < mLen; i += 2) {
+      game.meta[metaData[i]] = metaData[i + 1];
+    }
 
-    game.players = {};
+    // get start date and timestamp
+    game.date = new Date(game.meta.g_timestamp);
+    game.timestamp = game.date.getTime();
+  }
 
-    game.raw.match(playerRe).map( playerRaw => {
-      playerRe.lastIndex = 0;
+  processPlayer(game, data) {
+    let nameRaw = data[2],
+      nameSimple = nameRaw.replace(/\^\d{1}/g, ''),
+      ingameIndex = data[1];
 
-      let playerExec = playerRe.exec(playerRaw),
-        nameRaw = playerExec[2],
-        key = playerExec[1];
+    let player = null;
 
-      game.players[key] = {
+    if(this.settings.playerKey === 'name') {
+      player = this.players[nameSimple] || {
         name: {
           raw: nameRaw,
-          simple: nameRaw.replace(/\^\d{1}/g, '')
+          simple: nameSimple
         },
-        guid: playerExec[3],
+        guid: data[3],
         awards: new Array(this.settings.awards.length).fill(0),
         ctf: new Array(this.settings.ctf.length).fill(0),
         killMod: new Array(this.settings.kill.length).fill(0),
         deathMod: new Array(this.settings.kill.length).fill(0),
         kills: 0,
-        deaths: 0
+        deaths: 0,
+        warmups: [],
+        games: []
       };
-    });
+    }
+
+    if(game.isWarmup) {
+      player.warmups.push(game);
+    } else {
+      player.games.push(game);
+    }
+
+    game.players[ingameIndex] = player;
+    this.players[nameSimple] = player;
   }
 
-  processAwards(game) {
-    let awardRe = /^\s{1,2}\d{1,2}:\d{1,2}\s{1}Award:\s(\d+)\s(\d+).*$/gm;
+  processAward(game, data) {
+    let awardIndex = data[2],
+      playerKey = data[1];
 
-    game.raw.match(awardRe).map( awardRaw => {
-      awardRe.lastIndex = 0;
-
-      let awardExec = awardRe.exec(awardRaw),
-        awardIndex = awardExec[2],
-        playerKey = awardExec[1];
-
-      game.players[playerKey].awards[awardIndex] += 1;
-    });
+    game.players[playerKey].awards[awardIndex] += 1;
   }
 
-  processCTF(game) {
+  processKill(game, data) {
+    let killerKey = data[1],
+      preyKey = data[2],
+      modIndex = data[3],
+      killer = game.players[killerKey],
+      pery = game.players[preyKey];
+
+    if(killer && killerKey !== preyKey) {
+      killer.killMod[modIndex] += 1;
+      killer.kills += 1;
+    }
+
+    if(pery) {
+      pery.deathMod[modIndex] += 1;
+      pery.deaths += 1;
+    } else { // syntax?
+      console.warn('There was no prey');
+    }
+  }
+
+  processCTF(/*game, data*/) {
     // TODO: implement ctf
   }
 
-  processKills(game) {
-    let killRe = /^\s{1,2}\d{1,2}:\d{1,2}\s{1}Kill:\s(\d+)\s(\d+)\s(\d+).*$/gm;
+  matchAndExec(re, string, callback) {
+    let matches = string.match(re);
 
-    game.raw.match(killRe).map( killRaw => {
-      killRe.lastIndex = 0;
-
-      let killExec = killRe.exec(killRaw),
-        killerKey = killExec[1],
-        preyKey = killExec[2],
-        modIndex = killExec[3],
-        killer = game.players[killerKey],
-        pery = game.players[preyKey];
-
-      if(killer) {
-        killer.killMod[modIndex] += 1;
-        killer.kills += 1;
-      }
-
-      if(pery) {
-        pery.deathMod[modIndex] += 1;
-        pery.deaths += 1;
-      } else {
-        console.warn('There was no prey');
-      }
-
-    });
-  }
-
-  clean(game) {
-    delete game.raw;
-  }
-
-  createOrUpdatePlayer(player) {
-
+    if(matches) {
+      matches.forEach(match => {
+        re.lastIndex = 0;
+        callback(re.exec(match));
+      });
+    }
   }
 
   static isWarmup(rawGame) {

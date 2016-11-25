@@ -1,9 +1,6 @@
 let OpenArenaParser = require('./openArenaParser.js'),
-  logDirPath = './logs',
   fs = require('fs'),
-  glob = require("glob"),
-  logRe = new RegExp('^.*\.log$', 'g'),
-  logFiles = [],
+  glob = require('glob'),
   openArenaParser = new OpenArenaParser();
 
 function readFile(filePath) {
@@ -12,14 +9,22 @@ function readFile(filePath) {
       if (err) {
         return reject(err);
       }
-      resolve(data);
+      return resolve(data);
     });
   });
 }
 
 glob('logs/*.log', undefined, (err, files) => {
+  if(err) {
+    return err;
+  }
   Promise.all(files.map(file => readFile(file))).then(contents => {
     contents.forEach(openArenaParser.addString.bind(openArenaParser));
-    console.log(openArenaParser);
+
+    let keys = Object.keys(openArenaParser.players);
+
+    for(let key of keys) {
+      console.log(openArenaParser.players[key].name.simple);
+    }
   });
 });
