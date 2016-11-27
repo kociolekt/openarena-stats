@@ -14,6 +14,8 @@ let dictionary = require('./openArenaDictionary'),
     }
   }, dictionary);
 
+// TODO: https://github.com/OpenArena/leixperimental/blob/master/code/game/challenges.h
+
 class OpenArenaParser {
   constructor(options = {}) {
     this.settings = Object.assign({}, defaults, options);
@@ -21,6 +23,7 @@ class OpenArenaParser {
     this.warmups = [];
     this.matches = [];
     this.players = {};
+    this.playersByGUID = {};
   }
 
   addString(logs) {
@@ -63,7 +66,7 @@ class OpenArenaParser {
       this.matchAndExec(this.settings.parsers[parserKey], game.raw, this['process' + parserName].bind(this, game));
     }
 
-    delete game.rawGame;
+    delete game.raw;
   }
 
   processMeta(game, data) {
@@ -79,29 +82,13 @@ class OpenArenaParser {
   }
 
   processPlayer(game, data) {
-    let nameRaw = data[2],
-      nameSimple = nameRaw.replace(/\^\d{1}/g, ''),
+    let name = {
+        raw: data[2],
+        simple: data[2].replace(/\^\d{1}/g, '')
+      },
       ingameIndex = data[1];
 
-    let player = null;
-
-    if(this.settings.playerKey === 'name') {
-      player = this.players[nameSimple] || {
-        name: {
-          raw: nameRaw,
-          simple: nameSimple
-        },
-        guid: data[3],
-        awards: new Array(this.settings.awards.length).fill(0),
-        ctf: new Array(this.settings.ctf.length).fill(0),
-        killMod: new Array(this.settings.kill.length).fill(0),
-        deathMod: new Array(this.settings.kill.length).fill(0),
-        kills: 0,
-        deaths: 0,
-        warmups: [],
-        games: []
-      };
-    }
+    let player = this.getPlayer(name, data[3]);
 
     if(game.isWarmup) {
       player.warmups.push(game);
@@ -110,7 +97,6 @@ class OpenArenaParser {
     }
 
     game.players[ingameIndex] = player;
-    this.players[nameSimple] = player;
   }
 
   processAward(game, data) {
@@ -130,11 +116,23 @@ class OpenArenaParser {
     if(killer && killerKey !== preyKey) {
       killer.killMod[modIndex] += 1;
       killer.kills += 1;
+      killer.currentKillStreak += 1;
+
+      if(killer.currentDeathStreak > killer.deathStreak) {
+        killer.deathStreak = killer.currentDeathStreak;
+      }
+      killer.currentDeathStreak = 0;
     }
 
     if(pery) {
       pery.deathMod[modIndex] += 1;
       pery.deaths += 1;
+      pery.currentDeathStreak += 1;
+
+      if(pery.currentKillStreak > pery.killStreak) {
+        pery.killStreak = pery.currentKillStreak;
+      }
+      pery.currentKillStreak = 0;
     } else { // syntax?
       console.warn('There was no prey');
     }
@@ -152,6 +150,68 @@ class OpenArenaParser {
         re.lastIndex = 0;
         callback(re.exec(match));
       });
+    }
+  }
+
+  getPlayer(name, guid) {
+    let player = null;
+
+    // Try simple name
+    player = this.players[name.simple];
+
+    if(guid) {
+      // Try guid
+      if(!player) {
+
+        player = this.playersByGUID[guid];
+
+        if(player) {
+          // add alias
+          let aliasExists = false;
+          for(let i = 0, aLen = player.aliases.length; i < aLen; i++) {
+            if(player.aliases[i].raw === name.raw) {
+              aliasExists = true;
+              break;
+            }
+          }
+          if(!aliasExists) {
+            player.aliases.push(name);
+          }
+
+          return player;
+        }
+      }
+
+      // Create new player and add to register
+      player = this.createPlayer(name, guid);
+      this.players[name.simple] = player;
+      this.playersByGUID[guid] = player;
+    } else {
+      // Create new player and add to register
+      player = this.createPlayer(name, guid);
+      this.players[name.simple] = player;
+    }
+
+    return player;
+  }
+
+  createPlayer(name, guid) {
+    return {
+      name: name,
+      guid: guid,
+      aliases: [],
+      awards: new Array(this.settings.awards.length).fill(0),
+      ctf: new Array(this.settings.ctf.length).fill(0),
+      killMod: new Array(this.settings.kill.length).fill(0),
+      deathMod: new Array(this.settings.kill.length).fill(0),
+      kills: 0,
+      killStreak: 0,
+      currentKillStreak: 0,
+      deaths: 0,
+      deathStreak: 0,
+      currentDeathStreak: 0,
+      warmups: [],
+      games: []
     }
   }
 

@@ -2,18 +2,18 @@
 
 let dictionary = require('./openArenaDictionary'),
   defaults = Object.assign({
-    playerKey: 'name'
+
   }, dictionary);
 
-class OpenArenaParser {
+class OpenArenaStats {
   constructor(options = {}) {
     this.settings = Object.assign({}, defaults, options);
-
-    this.warmups = [];
-    this.matches = [];
-    this.players = {};
+    
   }
 
+  addOAP(oap) {
+
+  }
 }
 
-module.exports = OpenArenaParser;
+module.exports = OpenArenaStats;

@@ -24,7 +24,19 @@ glob('logs/*.log', undefined, (err, files) => {
     let keys = Object.keys(openArenaParser.players);
 
     for(let key of keys) {
-      console.log(openArenaParser.players[key].name.simple);
+      let player = openArenaParser.players[key];
+
+      console.log(
+        player.name.simple,
+        player.kills,
+        player.deaths,
+        (player.kills / (1 + player.kills + player.deaths) * 100) + '%',
+        player.killStreak,
+        player.deathStreak,
+        player.deaths != 0 ? player.kills / player.deaths : 0,
+        player.kills / player.games.length,
+        player.games.length,
+        player.guid);
     }
   });
 });
