@@ -1,10 +1,10 @@
 'use strict';
 
 let capitalizeFirstLetter = require('./capitalizeFirstLetter');
+let Player = require('./player');
 
-let dictionary = require('./openArenaDictionary'),
+let config = require('./config'),
   defaults = Object.assign({
-    playerKey: 'name',
     gameSplitter: /^(?:.*)ShutdownGame:/gm,
     parsers: {
       meta: /^(?:.*)InitGame:\s(.*)$/gm,
@@ -12,7 +12,7 @@ let dictionary = require('./openArenaDictionary'),
       award: /^(?:.*)Award:\s(\d+)\s(\d+).*$/gm,
       kill: /^(?:.*)Kill:\s(\d+)\s(\d+)\s(\d+).*$/gm
     }
-  }, dictionary);
+  }, config);
 
 // TODO: https://github.com/OpenArena/leixperimental/blob/master/code/game/challenges.h
 
@@ -23,7 +23,8 @@ class OpenArenaParser {
     this.warmups = [];
     this.matches = [];
     this.players = {};
-    this.playersByGUID = {};
+    this.players[this.settings.noGUID] = {};
+    this.playersArray = [];
   }
 
   addString(logs) {
@@ -156,63 +157,31 @@ class OpenArenaParser {
   getPlayer(name, guid) {
     let player = null;
 
-    // Try simple name
-    player = this.players[name.simple];
+    if(!guid) { // No GUID
+      guid = this.settings.noGUID;
 
-    if(guid) {
-      // Try guid
-      if(!player) {
+      // Try player without guid by simple name
+      player = this.players[guid][name.simple];
 
-        player = this.playersByGUID[guid];
-
-        if(player) {
-          // add alias
-          let aliasExists = false;
-          for(let i = 0, aLen = player.aliases.length; i < aLen; i++) {
-            if(player.aliases[i].raw === name.raw) {
-              aliasExists = true;
-              break;
-            }
-          }
-          if(!aliasExists) {
-            player.aliases.push(name);
-          }
-
-          return player;
-        }
+      if(!player) { // Create new if not exists
+        player = new Player(name, guid);
+        this.players[guid][name.simple] = player;
+        this.playersArray.push(player);
       }
+    } else { // GUID
+      // Try player with GUID
+      player = this.players[guid];
 
-      // Create new player and add to register
-      player = this.createPlayer(name, guid);
-      this.players[name.simple] = player;
-      this.playersByGUID[guid] = player;
-    } else {
-      // Create new player and add to register
-      player = this.createPlayer(name, guid);
-      this.players[name.simple] = player;
+      if(!player) { // Create new if not exists
+        player = new Player(name, guid);
+        this.players[guid] = player;
+        this.playersArray.push(player);
+      } else { // Update aliases if exists
+        player.alias(name);
+      }
     }
 
     return player;
-  }
-
-  createPlayer(name, guid) {
-    return {
-      name: name,
-      guid: guid,
-      aliases: [],
-      awards: new Array(this.settings.awards.length).fill(0),
-      ctf: new Array(this.settings.ctf.length).fill(0),
-      killMod: new Array(this.settings.kill.length).fill(0),
-      deathMod: new Array(this.settings.kill.length).fill(0),
-      kills: 0,
-      killStreak: 0,
-      currentKillStreak: 0,
-      deaths: 0,
-      deathStreak: 0,
-      currentDeathStreak: 0,
-      warmups: [],
-      games: []
-    }
   }
 
   static isWarmup(rawGame) {

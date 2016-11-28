@@ -43,5 +43,6 @@ module.exports = {
     'MOD_KAMIKAZE', //26
     'MOD_JUICED', //27
     'MOD_GRAPPLE' //28
-  ]
+  ],
+  noGUID: '(no guid)'
 };

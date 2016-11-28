@@ -1,9 +1,9 @@
 'use strict';
 
-let dictionary = require('./openArenaDictionary'),
+let config = require('./config'),
   defaults = Object.assign({
 
-  }, dictionary);
+  }, config);
 
 class OpenArenaStats {
   constructor(options = {}) {

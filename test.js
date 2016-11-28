@@ -21,13 +21,13 @@ glob('logs/*.log', undefined, (err, files) => {
   Promise.all(files.map(file => readFile(file))).then(contents => {
     contents.forEach(openArenaParser.addString.bind(openArenaParser));
 
-    let keys = Object.keys(openArenaParser.players);
+    let players = openArenaParser.playersArray;
 
-    for(let key of keys) {
-      let player = openArenaParser.players[key];
+    for(let i = 0, pLen = players.length; i < pLen; i++) {
+      let player = players[i];
 
       console.log(
-        player.name.simple,
+        player.formattedName(),
         player.kills,
         player.deaths,
         (player.kills / (1 + player.kills + player.deaths) * 100) + '%',
@@ -35,8 +35,7 @@ glob('logs/*.log', undefined, (err, files) => {
         player.deathStreak,
         player.deaths != 0 ? player.kills / player.deaths : 0,
         player.kills / player.games.length,
-        player.games.length,
-        player.guid);
+        player.games.length);
     }
   });
 });
