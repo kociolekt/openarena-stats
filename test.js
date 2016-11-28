@@ -14,7 +14,7 @@ function readFile(filePath) {
   });
 }
 
-glob('logs/*.log', undefined, (err, files) => {
+glob('examples/*.log', undefined, (err, files) => {
   if(err) {
     return err;
   }
