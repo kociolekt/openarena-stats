@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/kociolekt/openarena-stats#readme",
   "dependencies": {
-    "glob": "^7.1.1"
+    "glob": "^7.1.1",
+    "pad": "^1.0.2"
   }
 }

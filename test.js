@@ -23,19 +23,13 @@ glob('examples/*.log', undefined, (err, files) => {
 
     let players = openArenaParser.playersArray;
 
+    players.sort((a, b) => {
+      return b.skill - a.skill;
+    });
+
     for(let i = 0, pLen = players.length; i < pLen; i++) {
       let player = players[i];
-
-      console.log(
-        player.formattedName(),
-        player.kills,
-        player.deaths,
-        (player.kills / (1 + player.kills + player.deaths) * 100) + '%',
-        player.killStreak,
-        player.deathStreak,
-        player.deaths != 0 ? player.kills / player.deaths : 0,
-        player.kills / player.games.length,
-        player.games.length);
+      console.log(player.formattedStats());
     }
   });
 });

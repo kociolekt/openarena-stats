@@ -112,28 +112,39 @@ class OpenArenaParser {
       preyKey = data[2],
       modIndex = data[3],
       killer = game.players[killerKey],
-      pery = game.players[preyKey];
+      prey = game.players[preyKey];
 
     if(killer && killerKey !== preyKey) {
       killer.killMod[modIndex] += 1;
       killer.kills += 1;
       killer.currentKillStreak += 1;
 
+      // DeathStreak
       if(killer.currentDeathStreak > killer.deathStreak) {
         killer.deathStreak = killer.currentDeathStreak;
       }
       killer.currentDeathStreak = 0;
+
+      // Skillpoints
+      if(prey) {
+        let winningProbability = 1 / (1 + Math.pow(Math.E, ((prey.skill - killer.skill) / this.settings.skillVariance))),
+          skillAmount = (1 - winningProbability) * this.settings.weaponFactor[modIndex];
+
+        killer.skill += skillAmount;
+        prey.skill -= skillAmount;
+      }
     }
 
-    if(pery) {
-      pery.deathMod[modIndex] += 1;
-      pery.deaths += 1;
-      pery.currentDeathStreak += 1;
+    if(prey) {
+      prey.deathMod[modIndex] += 1;
+      prey.deaths += 1;
+      prey.currentDeathStreak += 1;
 
-      if(pery.currentKillStreak > pery.killStreak) {
-        pery.killStreak = pery.currentKillStreak;
+      // KillStreak
+      if(prey.currentKillStreak > prey.killStreak) {
+        prey.killStreak = prey.currentKillStreak;
       }
-      pery.currentKillStreak = 0;
+      prey.currentKillStreak = 0;
     } else { // syntax?
       console.warn('There was no prey');
     }
