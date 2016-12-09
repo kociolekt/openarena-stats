@@ -1,7 +1,7 @@
-let OpenArenaParser = require('./openArenaParser.js'),
-  fs = require('fs'),
-  glob = require('glob'),
-  openArenaParser = new OpenArenaParser();
+let OpenArenaParser = require('./openArenaParser.js');
+let fs = require('fs');
+let glob = require('glob');
+let openArenaParser = new OpenArenaParser();
 
 function readFile(filePath) {
   return new Promise((resolve, reject) => {

@@ -1,5 +1,6 @@
 'use strict';
 
+let md5 = require('md5');
 let capitalizeFirstLetter = require('./capitalizeFirstLetter');
 let Player = require('./player');
 
@@ -11,7 +12,8 @@ let config = require('./config'),
       player: /^(?:.*)ClientUserinfoChanged:\s{1}(\d+)\s{1}n\\(.*)\\t\\.*\\id\\(.*)$/gm,
       award: /^(?:.*)Award:\s(\d+)\s(\d+).*$/gm,
       kill: /^(?:.*)Kill:\s(\d+)\s(\d+)\s(\d+).*$/gm
-    }
+    },
+    playerCheck: 'name'
   }, config);
 
 // TODO: https://github.com/OpenArena/leixperimental/blob/master/code/game/challenges.h
@@ -20,6 +22,7 @@ class OpenArenaParser {
   constructor(options = {}) {
     this.settings = Object.assign({}, defaults, options);
 
+    this.hashes = [];
     this.warmups = [];
     this.matches = [];
     this.players = {};
@@ -33,13 +36,23 @@ class OpenArenaParser {
     rawGames.pop(); // remove last empty bit
 
     for (let i = 0, rLen = rawGames.length; i < rLen; i++) {
-      this.addRawGame(rawGames[i]);
+      let rawGame = rawGames[i],
+        hash = md5(rawGame);
+
+      if(this.hashes.includes(hash)) {
+        //console.log('game ' + hash + ' already exists - skipping');
+        continue;
+      }
+
+      this.hashes.push(hash);
+      this.addRawGame(rawGame, hash);
     }
   }
 
-  addRawGame(rawGame) {
+  addRawGame(rawGame, hash) {
     let game = {
       raw: rawGame,
+      hash: hash,
       meta: {},
       date: null,
       timestamp: null,
@@ -166,6 +179,32 @@ class OpenArenaParser {
   }
 
   getPlayer(name, guid) {
+    switch(this.settings.playerCheck) {
+    case 'guid':
+      return this.getPlayerByGUID(name, guid);
+    case 'name':
+      return this.getPlayerByName(name);
+    }
+    throw new Error('playerCheck option value should be "name" or "guid"');
+  }
+
+  getPlayerByName(name) {
+    let player = null,
+      noGUID = this.settings.noGUID;
+
+    // Try player without guid by simple name
+    player = this.players[noGUID][name.simple];
+
+    if(!player) { // Create new if not exists
+      player = new Player(name);
+      this.players[noGUID][name.simple] = player;
+      this.playersArray.push(player);
+    }
+
+    return player;
+  }
+
+  getPlayerByGUID(name, guid) {
     let player = null;
 
     if(!guid) { // No GUID

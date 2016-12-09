@@ -20,19 +20,35 @@ module.exports = class Player {
     this.games = [];
     this.hasGUID = guid !== config.noGUID;
     this.skill = config.skillMean;
+
+    this.alias(name);
   }
 
   alias(name) {
     let aliasExists = false;
 
     for(let i = 0, aLen = this.aliases.length; i < aLen; i++) {
-      if(this.aliases[i].raw === name.raw) {
-        aliasExists = true;
-        break;
+      let alias = this.aliases[i];
+
+      if(alias.raw === name.raw) {
+        alias.count += 1;
+
+        // update name to mostly used
+        if(alias.count > this.name.count) {
+          this.name = alias;
+        }
+
+        return;
       }
     }
-    if(!aliasExists) {
-      this.aliases.push(name);
+
+    // set count to 1 and add to aliases
+    name.count = 1;
+    this.aliases.push(name);
+
+    // set last used if same count
+    if(this.name.count === name.count) {
+      this.name = name;
     }
   }
 
