@@ -1,3 +1,5 @@
+require('./objectValuesEntries');
+
 let config = require('./config');
 let pad = require('pad');
 
@@ -10,6 +12,7 @@ module.exports = class Player {
     this.ctf = new Array(config.ctf.length).fill(0);
     this.killMod = new Array(config.kill.length).fill(0);
     this.deathMod = new Array(config.kill.length).fill(0);
+    this.challenges = null;
     this.kills = 0;
     this.killStreak = 0;
     this.currentKillStreak = 0;
@@ -21,12 +24,15 @@ module.exports = class Player {
     this.hasGUID = guid !== config.noGUID;
     this.skill = config.skillMean;
 
-    this.alias(name);
+    this.init();
+  }
+
+  init() {
+    this.alias(this.name);
+    this.fillChallenges();
   }
 
   alias(name) {
-    let aliasExists = false;
-
     for(let i = 0, aLen = this.aliases.length; i < aLen; i++) {
       let alias = this.aliases[i];
 
@@ -52,6 +58,17 @@ module.exports = class Player {
     }
   }
 
+  fillChallenges() {
+    this.challenges = Object.values(config.challenge).reduce((o, v) => {
+      o[v] = 0;
+      return o;
+    }, {});
+  }
+
+  challenge(id) {
+    this.challenges[config.challenge[id]] += 1;
+  }
+
   formattedName() {
     if(this.hasGUID) {
       return this.name.simple;
@@ -73,5 +90,17 @@ module.exports = class Player {
       skill = (this.skill).toFixed(2);
 
     return `${name}\t${kills}\t${deaths}\t${eff}\t${ks}\t${ds}\t${kd}\t${kg}\t${games}\t${skill}`;
+  }
+
+  formattedChallenges() {
+    let text = '';
+
+    for (let challengeName in this.challenges) {
+      if (this.challenges.hasOwnProperty(challengeName)) {
+        text += challengeName + ': ' + this.challenges[challengeName] + '\n';
+      }
+    }
+
+    return text;
   }
 };

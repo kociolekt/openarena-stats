@@ -11,6 +11,7 @@ let config = require('./config'),
       meta: /^(?:.*)InitGame:\s(.*)$/gm,
       player: /^(?:.*)ClientUserinfoChanged:\s{1}(\d+)\s{1}n\\(.*)\\t\\.*\\id\\(.*)$/gm,
       award: /^(?:.*)Award:\s(\d+)\s(\d+).*$/gm,
+      challenge: /^(?:.*)Challenge:\s(\d+)\s(\d+).*$/gm,
       kill: /^(?:.*)Kill:\s(\d+)\s(\d+)\s(\d+).*$/gm
     },
     playerCheck: 'name'
@@ -118,6 +119,13 @@ class OpenArenaParser {
       playerKey = data[1];
 
     game.players[playerKey].awards[awardIndex] += 1;
+  }
+
+  processChallenge(game, data) {
+    let challengeIndex = data[2],
+      playerKey = data[1];
+
+    game.players[playerKey].challenge(challengeIndex);
   }
 
   processKill(game, data) {
