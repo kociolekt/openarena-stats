@@ -2,9 +2,12 @@ require('./objectValuesEntries');
 
 let config = require('./config');
 let pad = require('pad');
+let autoincrement = 0;
+
 
 module.exports = class Player {
   constructor(name, guid) {
+    this.id = ++autoincrement;
     this.name = name;
     this.guid = guid;
     this.aliases = [];
@@ -102,5 +105,21 @@ module.exports = class Player {
     }
 
     return text;
+  }
+
+  jsonStats() {
+    return {
+      id: this.id,
+      name: this.formattedName(),
+      kills: this.kills,
+      deaths: this.deaths,
+      eff: (this.kills / (1 + this.kills + this.deaths) * 100).toFixed(2) + '%',
+      ks: this.killStreak,
+      ds: this.deathStreak,
+      kd: (this.deaths !== 0 ? this.kills / this.deaths : 0).toFixed(2),
+      kg: (this.kills / this.games.length).toFixed(2),
+      games: this.games.length,
+      skill: (this.skill).toFixed(2)
+    }
   }
 };

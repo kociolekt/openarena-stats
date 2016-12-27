@@ -17,10 +17,13 @@
   },
   "homepage": "https://github.com/kociolekt/openarena-stats#readme",
   "dependencies": {
+    "body-parser": "^1.15.2",
+    "express": "^4.14.0",
     "glob": "^7.1.1",
-    "json-stringify-safe": "^5.0.1",
-    "jsonfile": "^2.4.0",
+    "json-cycle": "^1.0.5",
+    "json-truncate": "^1.1.4",
     "md5": "^2.2.1",
+    "md5-file": "^3.1.1",
     "pad": "^1.0.2",
     "progress": "^1.1.8"
   }

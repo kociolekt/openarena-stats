@@ -26,9 +26,12 @@ class OpenArenaParser {
     this.hashes = [];
     this.warmups = [];
     this.matches = [];
+    
     this.players = {};
     this.players[this.settings.noGUID] = {};
+    
     this.playersArray = [];
+    this.gamesArray = [];
   }
 
   addString(logs) {
@@ -61,6 +64,8 @@ class OpenArenaParser {
       isWarmup: false
     };
 
+    this.gamesArray.push(game);
+    
     if(OpenArenaParser.isWarmup(rawGame)) {
       game.isWarmup = true;
       this.warmups.push(game);
