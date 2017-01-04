@@ -3,18 +3,20 @@
 let md5 = require('md5');
 let capitalizeFirstLetter = require('./capitalizeFirstLetter');
 let Player = require('./player');
+let Alias = require('./alias');
 
 let config = require('./config'),
   defaults = Object.assign({
     gameSplitter: /^(?:.*)ShutdownGame:/gm,
     parsers: {
       meta: /^(?:.*)InitGame:\s(.*)$/gm,
-      player: /^(?:.*)ClientUserinfoChanged:\s{1}(\d+)\s{1}n\\(.*)\\t\\.*\\id\\(.*)$/gm,
+      player: /^(?:.*)ClientUserinfoChanged:\s{1}(\d+)\s{1}n\\(.*)\\t\\(?:.*\\id\\(.*))?/gm,
       award: /^(?:.*)Award:\s(\d+)\s(\d+).*$/gm,
       challenge: /^(?:.*)Challenge:\s(\d+)\s(\d+).*$/gm,
       kill: /^(?:.*)Kill:\s(\d+)\s(\d+)\s(\d+).*$/gm
     },
-    playerCheck: 'name'
+    playerCheck: 'name',
+    aliases: 'game' // none, game, todo: global
   }, config);
 
 // TODO: https://github.com/OpenArena/leixperimental/blob/master/code/game/challenges.h
@@ -26,10 +28,10 @@ class OpenArenaParser {
     this.hashes = [];
     this.warmups = [];
     this.matches = [];
-    
+
     this.players = {};
     this.players[this.settings.noGUID] = {};
-    
+
     this.playersArray = [];
     this.gamesArray = [];
   }
@@ -65,7 +67,7 @@ class OpenArenaParser {
     };
 
     this.gamesArray.push(game);
-    
+
     if(OpenArenaParser.isWarmup(rawGame)) {
       game.isWarmup = true;
       this.warmups.push(game);
@@ -102,13 +104,24 @@ class OpenArenaParser {
   }
 
   processPlayer(game, data) {
-    let name = {
-        raw: data[2],
-        simple: data[2].replace(/\^\d{1}/g, '')
-      },
+    let name = new Alias(data[2]),
       ingameIndex = data[1];
 
-    let player = this.getPlayer(name, data[3]);
+    let player = null;
+
+    // Aktualizuje aliasy jak ktoś zmieni w trakcie gry
+    // nawet w przypadku playerCheck: name
+    if(this.settings.aliases === 'game') {
+      player = game.players[ingameIndex];
+
+      if(player) { // player updated info
+        player.alias(name);
+        return;
+      }
+    }
+
+    // Standardowa aktualizacja graczy
+    player = this.getPlayer(name, data[3]);
 
     if(game.isWarmup) {
       player.warmups.push(game);
@@ -159,6 +172,8 @@ class OpenArenaParser {
         killer.skill += skillAmount;
         prey.skill -= skillAmount;
       }
+
+      killer.aliasUsed();
     }
 
     if(prey) {
@@ -171,6 +186,8 @@ class OpenArenaParser {
         prey.killStreak = prey.currentKillStreak;
       }
       prey.currentKillStreak = 0;
+
+      prey.aliasUsed();
     } else { // syntax?
       console.warn('There was no prey');
     }

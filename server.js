@@ -39,7 +39,7 @@ function readFile(filePath) {
 
 function updateStats() {
   return new Promise((resolve, reject) => {
-    glob('examples/*.log', undefined, (err, files) => {
+    glob('stats/*.log', undefined, (err, files) => {
       if(err) {
         reject(err);
       }
@@ -105,7 +105,7 @@ router.get('/games', function(req, res) {
   res.send(JSON.stringify(jc.decycle(jt(games, 3))));
 });
 
-var allowCrossDomain = (req, res, next) => {
+let allowCrossDomain = (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
@@ -122,4 +122,13 @@ console.log('Preparing stats...');
 updateStats().then(() => {
   app.listen(port);
   console.log('Magic happens on port ' + port);
+
+  let players = openArenaParser.playersArray,
+    responseArray = [];
+
+  for(let i = 0, pLen = players.length; i < pLen; i++) {
+    let player = players[i];
+
+    console.log(player.jsonStats().aliases);
+  }
 });

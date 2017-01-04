@@ -2,13 +2,15 @@ require('./objectValuesEntries');
 
 let config = require('./config');
 let pad = require('pad');
+
+let Alias = require('./alias');
+
 let autoincrement = 0;
 
-
 module.exports = class Player {
-  constructor(name, guid) {
+  constructor(alias, guid) {
     this.id = ++autoincrement;
-    this.name = name;
+    this.name = null;
     this.guid = guid;
     this.aliases = [];
     this.awards = new Array(config.awards.length).fill(0);
@@ -27,15 +29,16 @@ module.exports = class Player {
     this.hasGUID = guid !== config.noGUID;
     this.skill = config.skillMean;
 
-    this.init();
-  }
+    this.alias(alias); // set current name
 
-  init() {
-    this.alias(this.name);
     this.fillChallenges();
   }
 
   alias(name) {
+    if(typeof name === 'string') {
+      name = new Alias(name);
+    }
+
     for(let i = 0, aLen = this.aliases.length; i < aLen; i++) {
       let alias = this.aliases[i];
 
@@ -52,13 +55,16 @@ module.exports = class Player {
     }
 
     // set count to 1 and add to aliases
-    name.count = 1;
     this.aliases.push(name);
 
     // set last used if same count
-    if(this.name.count === name.count) {
+    if(!this.name || this.name.count === name.count) {
       this.name = name;
     }
+  }
+
+  aliasUsed() {
+    this.alias(this.name);
   }
 
   fillChallenges() {
@@ -72,16 +78,8 @@ module.exports = class Player {
     this.challenges[config.challenge[id]] += 1;
   }
 
-  formattedName() {
-    if(this.hasGUID) {
-      return this.name.simple;
-    } else {
-      return this.name.simple + ' ' + config.noGUID;
-    }
-  }
-
   formattedStats() {
-    let name = pad(this.formattedName(), 20),
+    let name = pad(this.name.formatted, 20),
       kills = this.kills,
       deaths = this.deaths,
       eff = (this.kills / (1 + this.kills + this.deaths) * 100).toFixed(2) + '%',
@@ -110,7 +108,8 @@ module.exports = class Player {
   jsonStats() {
     return {
       id: this.id,
-      name: this.formattedName(),
+      name: this.name.formatted,
+      aliases: this.aliases.sort((a, b) => a.count - b.count).filter(alias => alias !== this.name),
       kills: this.kills,
       deaths: this.deaths,
       eff: (this.kills / (1 + this.kills + this.deaths) * 100).toFixed(2) + '%',
@@ -120,6 +119,6 @@ module.exports = class Player {
       kg: (this.kills / this.games.length).toFixed(2),
       games: this.games.length,
       skill: (this.skill).toFixed(2)
-    }
+    };
   }
 };
