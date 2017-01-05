@@ -5,7 +5,11 @@ module.exports = class Alias {
     this.formatted = this.simple;
     this.count = 1;
   }
-  
+
+  toString() {
+    return this.simple;
+  }
+
   static simplify(rawName) {
     return rawName.replace(/\^\d{1}/g, '');
   }
