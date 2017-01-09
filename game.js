@@ -20,6 +20,7 @@ module.exports = class Game {
     retval.id = this.id;
     retval.hash = this.hash;
     retval.warmup = this.isWarmup;
+    retval.playersCount = this.players.length;
 
     this.meta.hostname ? retval.hostname = this.meta.hostname : '';
     this.meta.gamename ? retval.game = this.meta.gamename : '';
@@ -41,7 +42,6 @@ module.exports = class Game {
     let retval = this.json();
 
     retval.players = this.players;
-    retval.playersCount = this.players.length;
 
     return retval;
   }
