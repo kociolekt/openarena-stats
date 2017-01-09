@@ -11,6 +11,7 @@ module.exports = class Game {
     this.date = null;
     this.timestamp = null;
     this.players = {};
+    this.playersCount = 0;
     this.isWarmup = Game.isWarmup(rawGame);
   }
 
@@ -20,7 +21,7 @@ module.exports = class Game {
     retval.id = this.id;
     retval.hash = this.hash;
     retval.warmup = this.isWarmup;
-    retval.playersCount = this.players.length;
+    retval.playersCount = this.playersCount;
 
     this.meta.hostname ? retval.hostname = this.meta.hostname : '';
     this.meta.gamename ? retval.game = this.meta.gamename : '';
@@ -38,6 +39,15 @@ module.exports = class Game {
     return retval;
   }
 
+  addPlayer(player, index) {
+    this.players[index] = player;
+    this.playersCount += 1;
+  }
+
+  getPlayer(index) {
+    return this.players[index];
+  }
+  
   jsonFull() {
     let retval = this.json();
 

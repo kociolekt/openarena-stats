@@ -105,7 +105,7 @@ class OpenArenaParser {
     // Aktualizuje aliasy jak ktoś zmieni w trakcie gry
     // nawet w przypadku playerCheck: name
     if(this.settings.aliases === 'game') {
-      player = game.players[ingameIndex];
+      player = game.getPlayer(ingameIndex);
 
       if(player) { // player updated info
         player.alias(name);
@@ -122,29 +122,29 @@ class OpenArenaParser {
       player.games.push(game);
     }
 
-    game.players[ingameIndex] = player;
+    game.addPlayer(player, ingameIndex);
   }
 
   processAward(game, data) {
     let awardIndex = data[2],
       playerKey = data[1];
 
-    game.players[playerKey].awards[awardIndex] += 1;
+    game.getPlayer(playerKey).awards[awardIndex] += 1;
   }
 
   processChallenge(game, data) {
     let challengeIndex = data[2],
       playerKey = data[1];
 
-    game.players[playerKey].challenge(challengeIndex);
+    game.getPlayer(playerKey).challenge(challengeIndex);
   }
 
   processKill(game, data) {
     let killerKey = data[1],
       preyKey = data[2],
       modIndex = data[3],
-      killer = game.players[killerKey],
-      prey = game.players[preyKey];
+      killer = game.getPlayer(killerKey),
+      prey = game.getPlayer(preyKey);
 
     if(killer && killerKey !== preyKey) {
       killer.killMod[modIndex] += 1;
