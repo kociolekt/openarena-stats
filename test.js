@@ -31,7 +31,7 @@ glob('examples/*.log', undefined, (err, files) => {
     for(let i = 0, pLen = players.length; i < pLen; i++) {
       let player = players[i];
 
-      console.log(player.formattedStats());
+      player.name.format();
     }
   });
 });

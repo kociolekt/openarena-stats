@@ -105,7 +105,7 @@ module.exports = class Player {
     return text;
   }
 
-  jsonStats() {
+  json() {
     return {
       id: this.id,
       name: this.name.formatted,

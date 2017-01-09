@@ -4,6 +4,7 @@ let md5 = require('md5');
 let capitalizeFirstLetter = require('./capitalizeFirstLetter');
 let Player = require('./player');
 let Alias = require('./alias');
+let Game = require('./game');
 
 let config = require('./config'),
   defaults = Object.assign({
@@ -56,20 +57,11 @@ class OpenArenaParser {
   }
 
   addRawGame(rawGame, hash) {
-    let game = {
-      raw: rawGame,
-      hash: hash,
-      meta: {},
-      date: null,
-      timestamp: null,
-      players: {},
-      isWarmup: false
-    };
+    let game = new Game(rawGame, hash);
 
     this.gamesArray.push(game);
 
-    if(OpenArenaParser.isWarmup(rawGame)) {
-      game.isWarmup = true;
+    if(rawGame.isWarmup) {
       this.warmups.push(game);
     } else {
       this.matches.push(game);
@@ -98,9 +90,10 @@ class OpenArenaParser {
       game.meta[metaData[i]] = metaData[i + 1];
     }
 
-    // get start date and timestamp
-    game.date = new Date(game.meta.g_timestamp);
-    game.timestamp = game.date.getTime();
+    if(game.meta.g_timestamp) { // get start date and timestamp from meta
+      game.date = new Date(game.meta.g_timestamp);
+      game.timestamp = game.date.getTime();
+    }
   }
 
   processPlayer(game, data) {
@@ -262,10 +255,6 @@ class OpenArenaParser {
     }
 
     return player;
-  }
-
-  static isWarmup(rawGame) {
-    return /^\s+\d+:\d+\s+Warmup:$/m.test(rawGame);
   }
 }
 

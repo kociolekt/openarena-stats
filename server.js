@@ -59,13 +59,7 @@ router.get('/', function(req, res) {
 // players api
 router.get('/players', function(req, res) {
   let players = openArenaParser.playersArray,
-    responseArray = [];
-
-  for(let i = 0, pLen = players.length; i < pLen; i++) {
-    let player = players[i];
-
-    responseArray.push(player.jsonStats());
-  }
+    responseArray = players.map(player => player.json());
 
   if(req.query.sort) {
     try {
@@ -99,10 +93,29 @@ router.get('/players/:playerId', function(req, res) {
 
 // games api
 router.get('/games', function(req, res) {
-  let games = openArenaParser.gamesArray;
+  let games = openArenaParser.gamesArray,
+    gamesJson = games.map(game => game.json());
 
   res.set('Content-Type', 'application/json; charset=utf-8');
-  res.send(JSON.stringify(jc.decycle(jt(games, 3))));
+  res.send(JSON.stringify(jc.decycle(jt(gamesJson, 3))));
+});
+
+
+router.get('/games/:gameId', function(req, res) {
+  let games = openArenaParser.gamesArray;
+
+  for(let i = 0, gLen = games.length; i < gLen; i++) {
+    let game = games[i];
+
+    if(game.id + '' === req.params.gameId + '') {
+
+      res.set('Content-Type', 'application/json; charset=utf-8');
+      res.send(JSON.stringify(jc.decycle(jt(game, 4))));
+      return;
+    }
+  }
+
+  res.json({status: false});
 });
 
 let allowCrossDomain = (req, res, next) => {
@@ -129,6 +142,6 @@ updateStats().then(() => {
   for(let i = 0, pLen = players.length; i < pLen; i++) {
     let player = players[i];
 
-    console.log(player.jsonStats().aliases);
+    console.log(player.json().aliases);
   }
 });
