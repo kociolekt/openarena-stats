@@ -39,8 +39,9 @@ module.exports = class Game {
 
   jsonFull() {
     let retval = this.json();
-    
+
     retval.players = this.players;
+    retval.playersCount = this.players.length;
 
     return retval;
   }

@@ -110,7 +110,7 @@ router.get('/games/:gameId', function(req, res) {
     if(game.id + '' === req.params.gameId + '') {
 
       res.set('Content-Type', 'application/json; charset=utf-8');
-      res.send(JSON.stringify(jc.decycle(jt(game, 4))));
+      res.send(JSON.stringify(jc.decycle(jt(game.jsonFull(), 4))));
       return;
     }
   }
